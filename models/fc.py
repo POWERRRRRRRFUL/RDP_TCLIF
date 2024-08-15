@@ -25,8 +25,35 @@ class RecurrentContainer(base.MemoryModule):
         return f'element-wise function={self.element_wise_function}, step_mode={self.step_mode}'
 
 
+class ffMnist(nn.Module):
+    def __init__(self, in_dim=201, spiking_neuron=None):
+        super().__init__()
+        layers = []
+        layers += [nn.Linear(in_dim, 64),
+                   spiking_neuron()]
+        layers += [nn.Linear(64, 256),
+                   spiking_neuron()]
+        layers += [nn.Linear(256, 256),
+                   spiking_neuron()]
+        layers += [nn.Linear(256, 10)]
+        self.features = nn.Sequential(*layers)
+        self.in_dim = in_dim
+
+    def forward(self, x):
+        assert x.dim() == 3, "dimension of x is not correct!"  # x: [bs, 201, 1]
+        output_current = []
+        for time in range(x.size(1)):  # T loop
+            start_idx = time
+            if start_idx < (x.size(1) - self.in_dim):
+                x_t = x[:, start_idx:start_idx+self.in_dim, :].reshape(-1, self.in_dim)
+            else:
+                x_t = x[:, x.size(1)-self.in_dim:x.size(1), :].reshape(-1, self.in_dim)
+            output_current.append(self.features(x_t))
+        res = torch.stack(output_current, 0)
+        return res.sum(0)
+
 class fbMnist(nn.Module):
-    def __init__(self, in_dim=8, spiking_neuron=None):
+    def __init__(self, in_dim=201, spiking_neuron=None):
         super().__init__()
         layers = []
         layers += [nn.Linear(in_dim, 64),
@@ -40,44 +67,17 @@ class fbMnist(nn.Module):
         self.in_dim = in_dim
 
     def forward(self, x):
-        assert x.dim() == 3, "dimension of x is not correct!"  # x: [bs, 784, 1]
+        assert x.dim() == 3, "dimension of x is not correct!"  # x: [bs, 201, 1]
         output_current = []
         for time in range(x.size(1)):  # T loop
             start_idx = time
             if start_idx < (x.size(1) - self.in_dim):
                 x_t = x[:, start_idx:start_idx+self.in_dim, :].reshape(-1, self.in_dim)
             else:
-                x_t = x[:, 784-self.in_dim:784, :].reshape(-1, self.in_dim)
+                x_t = x[:, x.size(1)-self.in_dim:x.size(1), :].reshape(-1, self.in_dim)
             output_current.append(self.features(x_t))
         res = torch.stack(output_current, 0)
         return res.sum(0)
 
-
-class ffMnist(nn.Module):
-    def __init__(self, in_dim=8, spiking_neuron=None):
-        super().__init__()
-        layers = []
-        layers += [nn.Linear(in_dim, 64),
-                   spiking_neuron()]
-        layers += [nn.Linear(64, 256),
-                   spiking_neuron()]
-        layers += [nn.Linear(256, 256),
-                   spiking_neuron()]
-        layers += [nn.Linear(256, 10)]
-        self.features = nn.Sequential(*layers)
-        self.in_dim = in_dim
-
-    def forward(self, x):
-        assert x.dim() == 3, "dimension of x is not correct!"  # x: [bs, 784, 1]
-        output_current = []
-        for time in range(x.size(1)):  # T loop
-            start_idx = time
-            if start_idx < (x.size(1) - self.in_dim):
-                x_t = x[:, start_idx:start_idx+self.in_dim, :].reshape(-1, self.in_dim)
-            else:
-                x_t = x[:, 784-self.in_dim:784, :].reshape(-1, self.in_dim)
-            output_current.append(self.features(x_t))
-        res = torch.stack(output_current, 0)
-        return res.sum(0)
 
 
