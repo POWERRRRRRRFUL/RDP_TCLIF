@@ -70,7 +70,15 @@ class BaseNode(base.MemoryModule):
         return f'v_threshold={self.v_threshold}, v_reset={self.v_reset}, detach_reset={self.detach_reset}, step_mode={self.step_mode}, backend={self.backend}'
 
     def single_step_forward(self, x: torch.Tensor):
+        # 确保 v1 和 v2 在第一次使用时初始化为与 x 大小一致的张量
         self.v_float_to_tensor(x)
+
+        # 动态初始化 v1 和 v2 为与 x 形状一致的张量
+        if self.names['v1'].dim() == 0 or self.names['v1'].size() != x.size():
+            self.names['v1'] = torch.zeros_like(x)
+        if self.names['v2'].dim() == 0 or self.names['v2'].size() != x.size():
+            self.names['v2'] = torch.zeros_like(x)
+
         self.neuronal_charge(x)
         spike = self.neuronal_fire()
         self.neuronal_reset(spike)
@@ -112,7 +120,7 @@ class TCLIFNode(BaseNode):
         super(TCLIFNode, self).__init__(v_threshold, v_reset, surrogate_function, detach_reset, step_mode)
         self.k = k
         for i in range(1, self.k + 1):
-            self.register_memory('v' + str(i), 0.)
+            self.register_memory('v' + str(i), torch.tensor(0.))  # 将 v1 和 v2 初始化为张量
 
         self.names = self._memories
         self.hard_reset = hard_reset
@@ -130,6 +138,13 @@ class TCLIFNode(BaseNode):
             raise ValueError(self.step_mode)
 
     def neuronal_charge(self, x: torch.Tensor):
+        # 动态初始化 v1 和 v2 为与 x 形状一致的张量
+        if self.names['v1'].dim() == 0:
+            self.names['v1'] = torch.zeros_like(x)
+        if self.names['v2'].dim() == 0:
+            self.names['v2'] = torch.zeros_like(x)
+
+        # 执行张量运算
         # v1: membrane potential of dendritic compartment
         # v2: membrane potential of somatic compartment
         self.names['v1'] = self.names['v1'] - torch.sigmoid(self.decay_factor[0][0]) * self.names['v2'] + x
