@@ -8,8 +8,12 @@ import pandas as pd
 class ValveDataset(Dataset):
     def __init__(self, attributes_file, labels_file, transform=None):
         self.attributes = pd.read_csv(attributes_file)
-        self.labels = pd.read_csv(labels_file)['Label']
+        # 跳过第一行，开始加载实际数据
+        self.labels = pd.read_csv(labels_file, header=None, skiprows=1).iloc[:, 0]  # 读取第一列数据作为标签
         self.transform = transform
+        # 打印数据集的形状
+        print(f"Attributes shape: {self.attributes.shape}")
+        print(f"Labels shape: {self.labels.shape}")
 
     def __len__(self):
         return len(self.labels)
