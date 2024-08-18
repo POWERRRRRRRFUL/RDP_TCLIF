@@ -3,6 +3,7 @@ from torchvision import transforms
 import torch
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 # 自定义的数据集类
 class ValveDataset(Dataset):
@@ -28,25 +29,31 @@ class ValveDataset(Dataset):
         return sample, label
 
 # 数据集加载函数
-def load_dataset(dataset='ValveDataset', batch_size=100, dataset_path='D:/Files/Learning/University/DL/SNN/spikingjelly/RDP/Raw_dataset', is_cuda=False, num_workers=8):
+def load_dataset(dataset='ValveDataset', batch_size=100, dataset_path='D:/Files/Learning/University/DL/SNN/spikingjelly/RDP/Raw_dataset', is_cuda=False, num_workers=8, train_ratio=0.8):
     kwargs = {'num_workers': num_workers, 'pin_memory': True} if is_cuda else {}
 
     if dataset == 'ValveDataset':
-        # 自定义数据集的处理
         num_classes = 8  # 对应数据集中的类别数量
         attributes_file = os.path.join(dataset_path, 'attributes.csv')
         labels_file = os.path.join(dataset_path, 'label.csv')
 
-        # 由于数据已标准化，这里可以选择不做进一步归一化
         transform = None
 
-        dataset_train = ValveDataset(attributes_file, labels_file, transform=transform)
+        # 加载数据集
+        full_dataset = ValveDataset(attributes_file, labels_file, transform=transform)
+
+        # 计算训练集和测试集的大小
+        train_size = int(train_ratio * len(full_dataset))
+        test_size = len(full_dataset) - train_size
+
+        # 分割数据集
+        dataset_train, dataset_test = torch.utils.data.random_split(full_dataset, [train_size, test_size])
 
         train_loader = torch.utils.data.DataLoader(
             dataset_train,
             batch_size=batch_size, shuffle=True, **kwargs)
         test_loader = torch.utils.data.DataLoader(
-            dataset_train,
+            dataset_test,
             batch_size=batch_size, shuffle=False, **kwargs)
 
     else:

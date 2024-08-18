@@ -146,6 +146,7 @@ parser.add_argument('--batch-size', default=256, type=int, metavar='N', help='mi
 parser.add_argument('--wd', default=0, type=float, metavar='W', help='weight decay')  # 权重衰减
 parser.add_argument("--workers", type=int, default=0)  # 数据加载的工作线程数量
 parser.add_argument('--cos', action='store_true', default=False, help='use cosine lr schedule')  # 是否使用余弦学习率调度
+parser.add_argument('--train-ratio', default=0.8, type=float, help='proportion of the dataset to include in the train split')  # 新增的参数
 
 # SNN（脉冲神经网络）选项
 parser.add_argument('--time-window', default=201, type=int, help='input dimension for time series data')  # 时间窗口，即输入维度
@@ -166,7 +167,6 @@ parser.add_argument('--dataset-path', default='D:/Files/Learning/University/DL/S
 args = parser.parse_args()
 
 # 设置结果保存目录
-# 设置结果保存目录
 if args.results_dir == '':
     args.results_dir = './cs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
@@ -179,9 +179,12 @@ seed_everything(seed=args.seed, is_cuda=True)  # 设置随机种子
 torch.backends.cudnn.benchmark = True  # 加速卷积操作
 
 # 构建数据加载器
-train_loader, test_loader, num_classes = load_dataset(dataset='ValveDataset', batch_size=args.batch_size,
-                                                      dataset_path=args.dataset_path, is_cuda=True,
-                                                      num_workers=args.workers)
+train_loader, test_loader, num_classes = load_dataset(dataset='ValveDataset',
+                                                      batch_size=args.batch_size,
+                                                      dataset_path=args.dataset_path,
+                                                      is_cuda=True,
+                                                      num_workers=args.workers,
+                                                      train_ratio=args.train_ratio)  # 修改后的调用
 args.time_window = 201  # 设置时间窗口，即输入维度
 in_dim = args.ind  # 设置输入的维度
 
