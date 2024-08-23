@@ -158,7 +158,7 @@ parser.add_argument('--beta1', default=0., type=float, help='')  # beta1参数
 parser.add_argument('--beta2', default=0., type=float, help='')  # beta2参数
 parser.add_argument('--gamma', default=0.5, type=float, help='dendritic reset scaling hyper-parameter')  # 树突重置的超参数gamma
 parser.add_argument('--sg', default='gau', type=str, help='sg: triangle, exp, gau, rectangle and sigmoid')  # 选择替代函数
-parser.add_argument('--neuron', default='tclif', type=str, help='neuron: tclif, lif, alif and plif')  # 选择神经元模型
+parser.add_argument('--neuron', default='plif', type=str, help='neuron: tclif, lif, alif and plif')  # 选择神经元模型
 parser.add_argument('--network', default='ff', type=str,
                     help='network(recurrent or feedforward): fb, ff')  # 选择网络类型（前馈或反馈）
 parser.add_argument('--ind', default=1, type=int, help='input dim: 1, 4, 8')  # 输入维度
@@ -166,9 +166,9 @@ parser.add_argument('--dataset-path', default='D:/Files/Learning/University/DL/S
 
 args = parser.parse_args()
 
-# 设置结果保存目录
-if args.results_dir == '':
-    args.results_dir = './cs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+# 设定保存结果的统一目录
+base_results_dir = './results'
+args.results_dir = os.path.join(base_results_dir, 'cs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
 
 Path(args.results_dir).mkdir(parents=True, exist_ok=True)  # 创建结果保存目录
 logger = setup_logging(os.path.join(args.results_dir, "log-" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".txt"))  # 设置日志记录
@@ -262,7 +262,7 @@ else:
     raise NotImplementedError  # 如果指定的优化器未实现，则抛出错误
 
 # 保存命令行参数配置
-with open(args.results_dir + '/args.json', 'w') as fid:
+with open(os.path.join(args.results_dir, 'args.json'), 'w') as fid:
     json.dump(args.__dict__, fid, indent=2)
 logging.info(str(args))  # 记录参数配置
 
