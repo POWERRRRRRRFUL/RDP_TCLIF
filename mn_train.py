@@ -162,8 +162,7 @@ parser.add_argument('--neuron', default='tclif', type=str, help='neuron: tclif, 
 parser.add_argument('--network', default='alexnet', type=str,
                     help='network type (options: ff, fb, alexnet, resnet)')  # 选择网络类型（前馈、反馈、AlexNet 或 ResNet）
 parser.add_argument('--ind', default=1, type=int, help='input dim: 1, 4, 8')  # 输入维度
-parser.add_argument('--dataset-path', default='D:/Files/Learning/University/DL/SNN/spikingjelly/RDP/Raw_dataset', type=str, help='Path to the dataset')
-
+parser.add_argument('--dataset-path', default=str((Path(__file__).parent / '../../RDP/Raw_dataset').resolve()), type=str, help='Path to the dataset')
 args = parser.parse_args()
 
 # 设定保存结果的统一目录
