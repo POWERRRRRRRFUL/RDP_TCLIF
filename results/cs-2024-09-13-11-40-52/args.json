@@ -1,0 +1,31 @@
+{
+  "task": "Valve",
+  "optim": "adam",
+  "results_dir": "./results\\cs-2024-09-13-11-40-52",
+  "print_freq": 100,
+  "seed": 0,
+  "epochs": 200,
+  "lr": 0.0005,
+  "schedule": [
+    60,
+    80
+  ],
+  "batch_size": 256,
+  "wd": 0,
+  "workers": 0,
+  "cos": false,
+  "train_ratio": 0.8,
+  "time_window": 201,
+  "threshold": 1.0,
+  "detach_reset": false,
+  "hard_reset": false,
+  "decay_factor": 1.0,
+  "beta1": 0.0,
+  "beta2": 0.0,
+  "gamma": 0.5,
+  "sg": "gau",
+  "neuron": "lif",
+  "network": "resnet",
+  "ind": 1,
+  "dataset_path": "D:\\Files\\Learning\\University\\DL\\SNN\\spikingjelly\\RDP\\Raw_dataset"
+}
