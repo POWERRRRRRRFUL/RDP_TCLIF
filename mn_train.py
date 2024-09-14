@@ -16,6 +16,8 @@ from spiking_neuron.TCLIF import TCLIFNode
 from spiking_neuron.ALIF import ALIF
 from load_dataset import load_dataset
 from models.fc import ffMnist, fbMnist, AlexNet, ResNet
+from models.CNN import SimpleCNN
+from models.RNN import SimpleRNN
 from utils import *
 
 
@@ -158,9 +160,9 @@ parser.add_argument('--beta1', default=0., type=float, help='')  # beta1参数
 parser.add_argument('--beta2', default=0., type=float, help='')  # beta2参数
 parser.add_argument('--gamma', default=0.5, type=float, help='dendritic reset scaling hyper-parameter')  # 树突重置的超参数gamma
 parser.add_argument('--sg', default='gau', type=str, help='sg: triangle, exp, gau, rectangle and sigmoid')  # 选择替代函数
-parser.add_argument('--neuron', default='tclif', type=str, help='neuron: tclif, lif, alif and plif')  # 选择神经元模型
-parser.add_argument('--network', default='alexnet', type=str,
-                    help='network type (options: ff, fb, alexnet, resnet)')  # 选择网络类型（前馈、反馈、AlexNet 或 ResNet）
+parser.add_argument('--neuron', default='lif', type=str, help='neuron: tclif, lif, alif and plif')  # 选择神经元模型
+parser.add_argument('--network', default='resnet', type=str,
+                    help='network type (options: ff, fb, alexnet, resnet, cnn, rnn)')  # 选择网络类型（前馈、反馈、AlexNet 或 ResNet）
 parser.add_argument('--ind', default=1, type=int, help='input dim: 1, 4, 8')  # 输入维度
 parser.add_argument('--dataset-path', default=str((Path(__file__).parent / '../../RDP/Raw_dataset').resolve()), type=str, help='Path to the dataset')
 args = parser.parse_args()
@@ -248,6 +250,10 @@ if args.task == 'Valve':
         model = AlexNet(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # AlexNet
     elif args.network == 'resnet':
         model = ResNet(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # ResNet
+    elif args.network == 'cnn':
+        model = SimpleCNN(in_dim=args.time_window).to(gpu)
+    elif args.network == 'rnn':
+        model = SimpleRNN(in_dim=args.time_window).to(gpu)
 else:
     raise NotImplementedError  # 如果任务未实现，则抛出错误
 
