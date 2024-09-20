@@ -160,7 +160,7 @@ parser.add_argument('--beta1', default=0., type=float, help='')  # beta1参数
 parser.add_argument('--beta2', default=0., type=float, help='')  # beta2参数
 parser.add_argument('--gamma', default=0.5, type=float, help='dendritic reset scaling hyper-parameter')  # 树突重置的超参数gamma
 parser.add_argument('--sg', default='gau', type=str, help='sg: triangle, exp, gau, rectangle and sigmoid')  # 选择替代函数
-parser.add_argument('--neuron', default='lif', type=str, help='neuron: tclif, lif, alif and plif')  # 选择神经元模型
+parser.add_argument('--neuron', default='tclif', type=str, help='neuron: tclif, lif, alif and plif')  # 选择神经元模型
 parser.add_argument('--network', default='resnet', type=str,
                     help='network type (options: ff, fb, alexnet, resnet, cnn, rnn)')  # 选择网络类型（前馈、反馈、AlexNet 或 ResNet）
 parser.add_argument('--ind', default=1, type=int, help='input dim: 1, 4, 8')  # 输入维度
