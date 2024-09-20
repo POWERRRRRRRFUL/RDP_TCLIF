@@ -15,7 +15,7 @@ from spiking_neuron.PLIF import ParametricLIFNode
 from spiking_neuron.TCLIF import TCLIFNode
 from spiking_neuron.ALIF import ALIF
 from load_dataset import load_dataset
-from models.fc import ffMnist, fbMnist, AlexNet, ResNet
+from models.fc import ff, fb, AlexNet, ResNet
 from models.CNN import SimpleCNN
 from models.RNN import SimpleRNN
 from utils import *
@@ -243,9 +243,9 @@ spiking_neuron = partial(node,
 # 根据指定的网络类型来初始化模型
 if args.task == 'Valve':
     if args.network == 'ff':
-        model = ffMnist(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # 前馈神经网络
+        model = ff(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # 前馈神经网络
     elif args.network == 'fb':
-        model = fbMnist(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # 反馈神经网络
+        model = fb(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # 反馈神经网络
     elif args.network == 'alexnet':
         model = AlexNet(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # AlexNet
     elif args.network == 'resnet':
