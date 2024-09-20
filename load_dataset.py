@@ -29,7 +29,7 @@ class ValveDataset(Dataset):
         return sample, label
 
 # 数据集加载函数
-def load_dataset(dataset='ValveDataset', batch_size=100, dataset_path='D:/Files/Learning/University/DL/SNN/spikingjelly/RDP/Raw_dataset', is_cuda=False, num_workers=8, train_ratio=0.8):
+def load_dataset(dataset='ValveDataset', batch_size=100, dataset_path=None, is_cuda=False, num_workers=8, train_ratio=0.8):
     kwargs = {'num_workers': num_workers, 'pin_memory': True} if is_cuda else {}
 
     if dataset == 'ValveDataset':
