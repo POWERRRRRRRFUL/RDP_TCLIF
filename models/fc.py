@@ -107,28 +107,33 @@ class SpikingResBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    """用于尖峰神经网络的ResNet模型
-    Args:
-        in_dim (int): 输入维度
-        spiking_neuron (nn.Module): 尖峰神经元模型
-    """
-    def __init__(self, in_dim=201, spiking_neuron=None):
+    """用于尖峰神经网络的ResNet模型，包含时间注意力机制"""
+
+    def __init__(self, in_dim=201, spiking_neuron=None, num_heads=8):
         super().__init__()
-        self.in_dim = in_dim  # 添加对 in_dim 的初始化
+        self.in_dim = in_dim  # 输入维度
+        self.num_heads = num_heads  # 注意力机制的头数
+
         # 初始线性层和尖峰神经元
         self.layer1 = nn.Sequential(
             nn.Linear(in_dim, 64),
             spiking_neuron()
         )
+
         # 两个残差块
         self.res_block1 = SpikingResBlock(64, 64, spiking_neuron)
         self.res_block2 = SpikingResBlock(64, 128, spiking_neuron, downsample=nn.Linear(64, 128))
+
+        # 添加自注意力层
+        self.attention = nn.MultiheadAttention(embed_dim=128, num_heads=self.num_heads)
+
         # 输出分类层
         self.fc = nn.Linear(128, 10)
 
     def forward(self, x):
         assert x.dim() == 3, "dimension of x is not correct!"  # 确保输入维度正确 [bs, 201, 1]
         output_current = []  # 用于存储每个时间步的输出
+
         for time in range(x.size(1)):  # 按时间步循环
             start_idx = time
             # 根据时间步裁剪输入
@@ -136,10 +141,19 @@ class ResNet(nn.Module):
                 x_t = x[:, start_idx:start_idx + self.in_dim, :].reshape(-1, self.in_dim)
             else:
                 x_t = x[:, x.size(1) - self.in_dim:x.size(1), :].reshape(-1, self.in_dim)
-            x_t = self.layer1(x_t)  # 初始层
+
+            # 初始层
+            x_t = self.layer1(x_t)
             x_t = self.res_block1(x_t)  # 第一个残差块
             x_t = self.res_block2(x_t)  # 第二个残差块
-            output_current.append(self.fc(x_t))  # 输出分类层
+
+            # 使用自注意力机制
+            x_t = x_t.unsqueeze(0)  # 由于MultiheadAttention要求输入有batch_first维度
+            x_t_attended, _ = self.attention(x_t, x_t, x_t)  # query, key, value 都是x_t
+            x_t_attended = x_t_attended.squeeze(0)  # 去掉多余的维度
+
+            output_current.append(self.fc(x_t_attended))  # 输出分类层
+
         res = torch.stack(output_current, 0)  # 堆叠时间步的输出
         return res.sum(0)  # 返回时间步输出的和
 
