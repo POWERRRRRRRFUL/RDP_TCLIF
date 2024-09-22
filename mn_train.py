@@ -8,7 +8,8 @@ import torch.backends.cudnn as cudnn
 from pathlib import Path
 from functools import partial
 import pandas as pd
-
+import numpy as np
+from sklearn.metrics import confusion_matrix
 import utils
 from spiking_neuron.neuron import LIFNode
 from spiking_neuron.PLIF import ParametricLIFNode
@@ -19,7 +20,6 @@ from models.fc import ff, fb, AlexNet, ResNet
 from models.CNN import SimpleCNN
 from models.RNN import SimpleRNN
 from utils import *
-
 
 # 训练函数，用于在训练集上训练模型
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -36,7 +36,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
     model.train()  # 设置模型为训练模式
 
-    end = time.time()
+    end = time.time()  # 记录训练开始时间
     for i, (attributes, target) in enumerate(train_loader):
         # 记录数据加载时间
         data_time.update(time.time() - end)
@@ -74,7 +74,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
     return top1.avg, losses.avg
 
 
-# 验证函数，用于在验证集上评估模型
+# 验证函数，用于在验证集上评估模型并计算混淆矩阵
 def validate(val_loader, model, criterion, args):
     batch_time = AverageMeter('Time', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -86,6 +86,9 @@ def validate(val_loader, model, criterion, args):
         prefix='Test: ')
 
     model.eval()  # 设置模型为评估模式
+
+    all_preds = []
+    all_targets = []
 
     with torch.no_grad():
         end = time.time()
@@ -105,9 +108,18 @@ def validate(val_loader, model, criterion, args):
             top1.update(acc1[0], attributes.size(0))
             top5.update(acc5[0], attributes.size(0))
 
+            # 保存预测结果和目标
+            _, pred = torch.max(output, 1)
+            all_preds.extend(pred.cpu().numpy())
+            all_targets.extend(target.cpu().numpy())
+
             # 记录每个批次的时间
             batch_time.update(time.time() - end)
             end = time.time()
+
+    # 计算并保存混淆矩阵
+    cm = confusion_matrix(all_targets, all_preds)
+    np.savetxt(os.path.join(args.results_dir, 'confusion_matrix.csv'), cm, delimiter=",")
 
     return top1.avg, top5.avg  # 返回验证集上的平均准确率
 
@@ -138,8 +150,8 @@ parser.add_argument('--results-dir', default='', type=str, metavar='PATH',
                     help='path to cache (default: none)')  # 结果保存路径
 parser.add_argument('-p', '--print-freq', default=100, type=int, metavar='N',
                     help='print frequency (default: 10)')  # 打印频率
-parser.add_argument('--seed', default=0, type=int, metavar='N', help='seed')  # 随机种子
-parser.add_argument('--epochs', default=200, type=int, metavar='N', help='number of total epochs to run')  # 训练周期
+parser.add_argument('--seed', default=2, type=int, metavar='N', help='seed')  # 随机种子
+parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs to run')  # 训练周期
 parser.add_argument('--lr', '--learning-rate', default=0.0005, type=float, metavar='LR', help='initial learning rate',
                     dest='lr')  # 初始学习率
 parser.add_argument('--schedule', default=[60, 80], nargs='*', type=int,
@@ -168,7 +180,7 @@ parser.add_argument('--dataset-path', default=str((Path(__file__).parent / '../.
 args = parser.parse_args()
 
 # 设定保存结果的统一目录
-base_results_dir = './results'
+base_results_dir = './results_SelfAttention'  # 修改为 results_SelfAttention 目录
 args.results_dir = os.path.join(base_results_dir, 'cs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
 
 Path(args.results_dir).mkdir(parents=True, exist_ok=True)  # 创建结果保存目录
@@ -249,7 +261,7 @@ if args.task == 'Valve':
     elif args.network == 'alexnet':
         model = AlexNet(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # AlexNet
     elif args.network == 'resnet':
-        model = ResNet(in_dim=in_dim, spiking_neuron=spiking_neuron).to(gpu)  # ResNet
+        model = ResNet(in_dim=in_dim, spiking_neuron=spiking_neuron, num_heads=8).to(gpu)  # ResNet
     elif args.network == 'cnn':
         model = SimpleCNN(in_dim=args.time_window).to(gpu)
     elif args.network == 'rnn':
@@ -288,11 +300,16 @@ test_res = pd.DataFrame()
 best = 0  # 初始化最佳准确率
 
 # 开始训练和验证循环
+total_train_time = 0  # 总训练时间
 for epoch in range(start_epoch, args.epochs):
     flag = False
     adjust_learning_rate(optimizer, epoch, args)  # 调整学习率
 
+    epoch_start_time = time.time()  # 开始时间
     train_acc, train_loss = train(train_loader, model, criterion, optimizer, epoch, args)  # 训练模型
+    epoch_end_time = time.time()  # 结束时间
+    epoch_duration = epoch_end_time - epoch_start_time
+    total_train_time += epoch_duration  # 累加训练时间
 
     acc1, acc5 = validate(test_loader, model, criterion, args)  # 验证模型
     best_acc.top1 = max(best_acc.top1, acc1)  # 更新最佳Top-1准确率
@@ -303,9 +320,8 @@ for epoch in range(start_epoch, args.epochs):
     if acc1.cpu().item() >= best:
         flag = True
         best = acc1.cpu().item()  # 更新最佳准确率
-    print('Test Epoch: [{}/{}], lr: {:.6f}, acc: {:.4f}, best: {:.4f}'.format(epoch, args.epochs,
-                                                                                     optimizer.param_groups[0]['lr'],
-                                                                                     acc1, best))
+    print('Test Epoch: [{}/{}], lr: {:.6f}, acc: {:.4f}, best: {:.4f}, epoch_time: {:.2f}s'.format(
+        epoch, args.epochs, optimizer.param_groups[0]['lr'], acc1, best, epoch_duration))
 
     train_res.to_csv(os.path.join(args.results_dir, 'train_res.csv'), index=True)  # 保存训练结果到CSV
     test_res.to_csv(os.path.join(args.results_dir, 'test_res.csv'), index=True)  # 保存测试结果到CSV
@@ -317,3 +333,11 @@ for epoch in range(start_epoch, args.epochs):
         'state_dict': model.state_dict(),
         'optimizer': optimizer.state_dict(),
     }, is_best=flag, dirname=args.results_dir, filename='checkpoint.pth.tar')
+
+# 总训练时间保存
+with open(os.path.join(args.results_dir, 'total_train_time.txt'), 'w') as time_file:
+    time_file.write(f"Total training time: {total_train_time:.2f} seconds\n")
+    logging.info(f"Total training time: {total_train_time:.2f} seconds")
+
+print(f"Training completed. Total training time: {total_train_time:.2f} seconds")
+
