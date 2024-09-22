@@ -25,7 +25,7 @@ class RecurrentContainer(base.MemoryModule):
         return f'element-wise function={self.element_wise_function}, step_mode={self.step_mode}'
 
 
-class ffMnist(nn.Module):
+class ff(nn.Module):
     def __init__(self, in_dim=201, spiking_neuron=None):
         super().__init__()
         layers = []
@@ -52,7 +52,7 @@ class ffMnist(nn.Module):
         res = torch.stack(output_current, 0)
         return res.sum(0)
 
-class fbMnist(nn.Module):
+class fb(nn.Module):
     def __init__(self, in_dim=201, spiking_neuron=None):
         super().__init__()
         layers = []
