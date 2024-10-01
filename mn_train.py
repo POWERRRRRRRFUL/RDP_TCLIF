@@ -43,7 +43,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         attributes = attributes.cuda(non_blocking=True)  # 将数据加载到GPU
         target = target.cuda(non_blocking=True)
 
-        input_data = attributes.view(-1, args.time_window, 1)  # 重新调整数据形状以适应模型的输入
+        input_data = attributes  # 直接使用 [bs, 1, 201] 形状
 
         reset_states(model=model)  # 重置模型的状态
         output = model(input_data)  # 前向传播
@@ -93,7 +93,7 @@ def validate(val_loader, model, criterion, args):
             attributes = attributes.cuda(non_blocking=True)
             target = target.cuda(non_blocking=True)
 
-            input_data = attributes.view(-1, args.time_window, 1)  # 重新调整数据形状以适应模型的输入
+            input_data = attributes  # 直接使用 [bs, 1, 201] 形状
 
             reset_states(model=model)  # 重置模型状态
             output = model(input_data)  # 前向传播
@@ -138,8 +138,8 @@ parser.add_argument('--results-dir', default='', type=str, metavar='PATH',
                     help='path to cache (default: none)')  # 结果保存路径
 parser.add_argument('-p', '--print-freq', default=100, type=int, metavar='N',
                     help='print frequency (default: 10)')  # 打印频率
-parser.add_argument('--seed', default=0, type=int, metavar='N', help='seed')  # 随机种子
-parser.add_argument('--epochs', default=200, type=int, metavar='N', help='number of total epochs to run')  # 训练周期
+parser.add_argument('--seed', default=51, type=int, metavar='N', help='seed')  # 随机种子
+parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs to run')  # 训练周期
 parser.add_argument('--lr', '--learning-rate', default=0.0005, type=float, metavar='LR', help='initial learning rate',
                     dest='lr')  # 初始学习率
 parser.add_argument('--schedule', default=[60, 80], nargs='*', type=int,
@@ -151,7 +151,7 @@ parser.add_argument('--cos', action='store_true', default=False, help='use cosin
 parser.add_argument('--train-ratio', default=0.8, type=float, help='proportion of the dataset to include in the train split')  # 新增的参数
 
 # SNN（脉冲神经网络）选项
-parser.add_argument('--time-window', default=201, type=int, help='input dimension for time series data')  # 时间窗口，即输入维度
+# parser.add_argument('--time-window', default=201, type=int, help='input dimension for time series data')  # 时间窗口，即输入维度
 parser.add_argument('--threshold', default=1.0, type=float, help='')  # 神经元发放阈值
 parser.add_argument('--detach-reset', action='store_true', default=False, help='')  # 是否使用detach重置
 parser.add_argument('--hard-reset', action='store_true', default=False, help='')  # 是否使用硬重置
@@ -168,7 +168,7 @@ parser.add_argument('--dataset-path', default=str((Path(__file__).parent / '../.
 args = parser.parse_args()
 
 # 设定保存结果的统一目录
-base_results_dir = './results'
+base_results_dir = './results_Static-Feature-Enhancer'
 args.results_dir = os.path.join(base_results_dir, 'cs-' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
 
 Path(args.results_dir).mkdir(parents=True, exist_ok=True)  # 创建结果保存目录

@@ -20,7 +20,8 @@ class ValveDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        sample = torch.tensor(self.attributes.iloc[idx].values, dtype=torch.float32)
+        # 原来输出的 sample 形状是 [201]，调整为 [1, 201]，以适应 Conv1d 的输入
+        sample = torch.tensor(self.attributes.iloc[idx].values, dtype=torch.float32).unsqueeze(0)  # [1, 201]
         label = torch.tensor(self.labels.iloc[idx], dtype=torch.long)
 
         if self.transform:

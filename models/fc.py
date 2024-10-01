@@ -107,41 +107,61 @@ class SpikingResBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    """用于尖峰神经网络的ResNet模型
-    Args:
-        in_dim (int): 输入维度
-        spiking_neuron (nn.Module): 尖峰神经元模型
-    """
+    """用于尖峰神经网络的ResNet模型，结合静态特征增强"""
+
     def __init__(self, in_dim=201, spiking_neuron=None):
         super().__init__()
-        self.in_dim = in_dim  # 添加对 in_dim 的初始化
-        # 初始线性层和尖峰神经元
+        self.in_dim = in_dim
+
+        # 新增的卷积层提取静态特征
+        self.conv1 = nn.Conv1d(1, 64, kernel_size=3, stride=1, padding=1)
+        self.conv_activation = spiking_neuron()  # 卷积后的脉冲激活
+
+        # 初始线性层和尖峰神经元，确保输入为 12864
         self.layer1 = nn.Sequential(
-            nn.Linear(in_dim, 64),
+            nn.Linear(12864, 128),  # 输入尺寸为 12864，输出为 128
             spiking_neuron()
         )
+
         # 两个残差块
-        self.res_block1 = SpikingResBlock(64, 64, spiking_neuron)
-        self.res_block2 = SpikingResBlock(64, 128, spiking_neuron, downsample=nn.Linear(64, 128))
+        self.res_block1 = SpikingResBlock(128, 128, spiking_neuron)
+        self.res_block2 = SpikingResBlock(128, 256, spiking_neuron, downsample=nn.Linear(128, 256))
+
         # 输出分类层
-        self.fc = nn.Linear(128, 10)
+        self.fc = nn.Linear(256, 10)
 
     def forward(self, x):
-        assert x.dim() == 3, "dimension of x is not correct!"  # 确保输入维度正确 [bs, 201, 1]
-        output_current = []  # 用于存储每个时间步的输出
-        for time in range(x.size(1)):  # 按时间步循环
-            start_idx = time
-            # 根据时间步裁剪输入
-            if start_idx < (x.size(1) - self.in_dim):
-                x_t = x[:, start_idx:start_idx + self.in_dim, :].reshape(-1, self.in_dim)
-            else:
-                x_t = x[:, x.size(1) - self.in_dim:x.size(1), :].reshape(-1, self.in_dim)
-            x_t = self.layer1(x_t)  # 初始层
-            x_t = self.res_block1(x_t)  # 第一个残差块
-            x_t = self.res_block2(x_t)  # 第二个残差块
-            output_current.append(self.fc(x_t))  # 输出分类层
-        res = torch.stack(output_current, 0)  # 堆叠时间步的输出
-        return res.sum(0)  # 返回时间步输出的和
+        assert x.dim() == 2 or x.dim() == 3, "dimension of x is not correct!"  # 确保输入维度正确 [bs, 201] 或 [bs, 1, 201]
+
+        # 如果输入是 [bs, 201]，则需要增加一个通道维度
+        if x.dim() == 2:
+            x = x.unsqueeze(1)  # 将 [bs, 201] 变为 [bs, 1, 201]
+
+        # 打印输入形状，调试用
+        #print(f"Input shape before conv1: {x.shape}")
+
+        # 卷积层特征提取
+        x = self.conv1(x)  # [bs, 64, 201]
+        #print(f"Shape after conv1: {x.shape}")  # 打印形状以调试
+
+        x = self.conv_activation(x)  # [bs, 64, 201]
+
+        # 展平卷积输出并传入初始线性层
+        x = x.view(x.size(0), -1)  # 展平 [bs, 64 * 201] => [bs, 12864]
+        #print(f"Shape after flattening: {x.shape}")  # 打印展平后的形状
+
+        # 输入初始线性层
+        x = self.layer1(x)  # 初始层，输入为 [bs, 12864]，输出为 [bs, 128]
+        #print(f"Shape after layer1: {x.shape}")  # 打印初始线性层的输出形状
+
+        # 通过残差块
+        x = self.res_block1(x)  # [bs, 128]
+        x = self.res_block2(x)  # [bs, 256]
+
+        # 输出分类层
+        out = self.fc(x)  # [bs, 10]
+        #print(f"Output shape after fc: {out.shape}")  # 打印最终输出形状
+        return out
 
 
 class AlexNet(nn.Module):
