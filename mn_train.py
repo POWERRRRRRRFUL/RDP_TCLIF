@@ -20,6 +20,7 @@ from models.fc import ff, fb, AlexNet, ResNet
 from models.CNN import SimpleCNN
 from models.RNN import SimpleRNN
 from utils import *
+import random
 
 # 训练函数，用于在训练集上训练模型
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -150,7 +151,7 @@ parser.add_argument('--results-dir', default='', type=str, metavar='PATH',
                     help='path to cache (default: none)')  # 结果保存路径
 parser.add_argument('-p', '--print-freq', default=100, type=int, metavar='N',
                     help='print frequency (default: 10)')  # 打印频率
-parser.add_argument('--seed', default=2, type=int, metavar='N', help='seed')  # 随机种子
+parser.add_argument('--seed', default=random.randint(0, 2**32 - 1), type=int, metavar='N', help='seed')  # 随机种子
 parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs to run')  # 训练周期
 parser.add_argument('--lr', '--learning-rate', default=0.0005, type=float, metavar='LR', help='initial learning rate',
                     dest='lr')  # 初始学习率
